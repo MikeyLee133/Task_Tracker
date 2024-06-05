@@ -24,6 +24,7 @@ class TaskViewModel: ObservableObject {
     private let tasksKey = "tasks"
 
     init() {
+        requestNotificationPermission()
         fetchTasks()
     }
 
@@ -37,6 +38,18 @@ class TaskViewModel: ObservableObject {
     private func saveTasks() {
         if let encoded = try? JSONEncoder().encode(tasks) {
             UserDefaults.standard.set(encoded, forKey: tasksKey)
+        }
+    }
+
+    func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if let error = error {
+                print("Error requesting notification permission: \(error.localizedDescription)")
+            } else if granted {
+                print("Notification permission granted.")
+            } else {
+                print("Notification permission denied.")
+            }
         }
     }
 
@@ -144,6 +157,9 @@ struct ContentView: View {
             .navigationTitle("Task Tracker")
         }
         .background(Color(UIColor.systemGray6).ignoresSafeArea())
+        .onAppear {
+            viewModel.requestNotificationPermission()
+        }
     }
 }
 
@@ -154,7 +170,7 @@ struct TaskSectionView: View {
     let viewModel: TaskViewModel
 
     var body: some View {
-        if !tasks.isEmpty {
+        if (!tasks.isEmpty) {
             Section(header: Text(title).font(.headline)) {
                 ForEach(tasks.sorted(by: { $0.dueDate ?? .distantFuture < $1.dueDate ?? .distantFuture }), id: \.id) { task in
                     TaskRow(task: task,
